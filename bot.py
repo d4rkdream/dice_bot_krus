@@ -16,7 +16,7 @@ if not TOKEN:
 
 bot = Bot(token=TOKEN)
 api = API(token=TOKEN)
-db = Database()  # глобальный экземпляр БД
+db = Database()
 
 # ---------------------- Логика бросков (без изменений) ----------------------
 def parse_dice_command(cmd: str):
@@ -197,15 +197,12 @@ async def handle_message(message: Message):
     user_id = message.from_id
     peer_id = message.peer_id
 
-    # Обновляем счётчик сообщений
     await db.update_activity(peer_id, user_id, is_roll=False)
 
-    # Помощь
     if lower in ('/помощь', '/кпомощь', '/help', '/кhelp'):
         await message.answer(HELP_TEXT)
         return
 
-    # Список имён
     if lower in ('/имена', '/кимена'):
         all_names = await db.get_all_names(peer_id)
         if not all_names:
@@ -217,7 +214,6 @@ async def handle_message(message: Message):
             await message.answer("\n".join(lines))
         return
 
-    # Топ статистики
     if lower.startswith('/топ') or lower.startswith('/к топ'):
         parts = text.split()
         days = 0
@@ -241,7 +237,6 @@ async def handle_message(message: Message):
         await message.answer("\n".join(lines))
         return
 
-    # Очистка вышедших участников
     if lower == '/вышедшие кик' or lower == '/к вышедшие кик':
         if peer_id <= 2000000000:
             await message.answer("Эта команда работает только в беседах.")
@@ -257,7 +252,6 @@ async def handle_message(message: Message):
             await message.answer("Нет вышедших участников, данные в порядке.")
         return
 
-    # Управление именем
     if lower.startswith('/имя') or lower.startswith('/кимя'):
         prefix_len = 5 if lower.startswith('/кимя') else 4
         rest = text[prefix_len:].strip()
@@ -275,7 +269,6 @@ async def handle_message(message: Message):
                 await message.answer(f"✅ Ваше имя в этой беседе установлено: {rest}")
         return
 
-    # Обработка бросков
     tokens = text.split()
     results = []
     nickname = await db.get_name(peer_id, user_id)
@@ -318,20 +311,23 @@ async def run_web():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     print(f"Веб-сервер запущен на порту {port}")
+    # Бесконечно ждём (веб-сервер работает в фоне)
+    await asyncio.Event().wait()
 
+# ---------------------- Исправленная main() ----------------------
 async def main():
-    # Инициализация БД (создание таблиц)
     await db._ensure_connection()
     print("Бот запущен...")
     
-    # Получаем текущий event loop
     loop = asyncio.get_running_loop()
-    
     # Запускаем веб-сервер как фоновую задачу
     web_task = asyncio.create_task(run_web())
     
     # Запускаем polling бота, передавая ему текущий цикл
     await bot.run_polling(loop=loop)
     
-    # Если бот остановился (например, по ошибке) — отменяем веб-сервер
+    # Если досюда дошли (остановка бота), отменяем веб-сервер
     web_task.cancel()
+
+if __name__ == "__main__":
+    asyncio.run(main())
