@@ -310,23 +310,12 @@ async def run_web():
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    print(f"Веб-сервер запущен на порту {port}")
-    # Бесконечно ждём (веб-сервер работает в фоне)
-    await asyncio.Event().wait()
+    # Бесконечное ожидание, но не блокируем цикл
+    while True:
+        await asyncio.sleep(3600)
 
 async def main():
     await db._ensure_connection()
     print("Бот запущен...")
-    
-    # Запускаем веб-сервер как фоновую задачу
-    web_task = asyncio.create_task(run_web())
-    
-    # Запускаем polling бота — теперь без аргумента loop
-    # run_polling() сам использует текущий event loop
+    asyncio.create_task(run_web())
     await bot.run_polling()
-    
-    # Если сюда дойдём (бот остановлен), отменяем веб-сервер
-    web_task.cancel()
-
-if __name__ == "__main__":
-    asyncio.run(main())
