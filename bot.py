@@ -11,7 +11,7 @@ from vkbottle.api import API
 
 TOKEN = os.environ.get("VK_TOKEN")
 if not TOKEN:
-    raise ValueError("VK_BOT_TOKEN не установлен")
+    raise ValueError("VK_TOKEN не установлен")
 
 DB_PATH = "users.db"
 bot = Bot(token=TOKEN)
