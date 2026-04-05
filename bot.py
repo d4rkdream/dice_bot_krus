@@ -323,10 +323,15 @@ async def main():
     # Инициализация БД (создание таблиц)
     await db._ensure_connection()
     print("Бот запущен...")
-    await asyncio.gather(
-        run_web(),
-        bot.run_polling(),
-    )
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    
+    # Получаем текущий event loop
+    loop = asyncio.get_running_loop()
+    
+    # Запускаем веб-сервер как фоновую задачу
+    web_task = asyncio.create_task(run_web())
+    
+    # Запускаем polling бота, передавая ему текущий цикл
+    await bot.run_polling(loop=loop)
+    
+    # Если бот остановился (например, по ошибке) — отменяем веб-сервер
+    web_task.cancel()
