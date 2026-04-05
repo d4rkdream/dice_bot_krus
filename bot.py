@@ -314,19 +314,18 @@ async def run_web():
     # Бесконечно ждём (веб-сервер работает в фоне)
     await asyncio.Event().wait()
 
-# ---------------------- Исправленная main() ----------------------
 async def main():
     await db._ensure_connection()
     print("Бот запущен...")
     
-    loop = asyncio.get_running_loop()
     # Запускаем веб-сервер как фоновую задачу
     web_task = asyncio.create_task(run_web())
     
-    # Запускаем polling бота, передавая ему текущий цикл
-    await bot.run_polling(loop=loop)
+    # Запускаем polling бота — теперь без аргумента loop
+    # run_polling() сам использует текущий event loop
+    await bot.run_polling()
     
-    # Если досюда дошли (остановка бота), отменяем веб-сервер
+    # Если сюда дойдём (бот остановлен), отменяем веб-сервер
     web_task.cancel()
 
 if __name__ == "__main__":
